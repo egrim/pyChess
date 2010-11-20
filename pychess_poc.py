@@ -11,41 +11,51 @@ greenlet_list = controlled_threading.get_greenlet_list()
 shortest_fail = None
 
 
-def run_step(depth):
+def run_interleavings(switches, depth, last_greenlet_run):
     if not controlled_threading.are_greenlets_alive():
-        print "%s: all greenlets completed" % execution_path
+        print "%s: finished (all greenlets completed)" % execution_path
         return
 
     if depth is 0:
-        print "%s: depth bound reached, proceeding with next path" % execution_path
+        print "%s: aborting (depth bound reached)" % execution_path
         return
 
     for stepIndex in xrange(len(greenlet_list)): # use indices since greenlet_list will change each iteration
         greenlet = greenlet_list[stepIndex]
-        if greenlet:
-            execution_path.append(stepIndex)
-            try:
-                greenlet.switch()
-                run_step(depth - 1)
+        if not greenlet:
+            print "%s: skipping (greenlet %s already completed)" % (execution_path + [stepIndex, ], stepIndex)
+            continue
+
+        execution_path.append(stepIndex)
+        try:
+            if greenlet != last_greenlet_run:
+                if switches is 0:
+                    print "%s: skipping (context bound reached)" % execution_path
+                    continue
+                switches_left = switches - 1
+            else:
+                switches_left = switches
+
+            try:            
+                last_greenlet_run = greenlet.switch()
+                run_interleavings(switches_left, depth - 1, last_greenlet_run)
             except AssertionError, e:
                 global shortest_fail
                 if not shortest_fail or len(execution_path) < len(shortest_fail):
                     shortest_fail = execution_path[:] # make a copy... we want to hold on to this
                 print "%s: test failure (%s)" % (execution_path, e)
-
+        finally:
             execution_path.pop()
-            controlled_threading.start_greenlet_from_file(sys.argv[1], execution_path)
 
-        else:
-            print "%s: skipping (greenlet %s already dead)" % (execution_path + [stepIndex, ], stepIndex)
+        controlled_threading.start_greenlet_from_file(sys.argv[1], execution_path)
 
 
 def main():
     if len(sys.argv) < 2:
         sys.exit("missing argument specifying file to be tested")
 
-    controlled_threading.start_greenlet_from_file(sys.argv[1])
-    run_step(10)
+    last_greenlet_run = controlled_threading.start_greenlet_from_file(sys.argv[1])
+    run_interleavings(5, 10, last_greenlet_run)
 
     if shortest_fail:
         print "Shortest failure path: %s" % shortest_fail

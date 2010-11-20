@@ -33,11 +33,15 @@ def start_greenlet_from_file(filename, execution_path_to_run=None):
 
     new_greenlet = greenlet.greenlet(run_as_main)
     greenlet_list.append(new_greenlet)
+    
     new_greenlet.switch(filename)
+    last_greenlet_run = new_greenlet
 
     if execution_path_to_run:
         for step in execution_path_to_run:
-            greenlet_list[step].switch()
+            last_greenlet_run = greenlet_list[step].switch()
+            
+    return last_greenlet_run
 
 
 def cancel_all_greenlets():
@@ -58,18 +62,30 @@ class Thread(object):
         self.name = name
         self.args = args
         self.kwargs = kwargs
+        
+        self.greenlet = None
+        self.spawning_greenlet = None
 
     def start(self):
         # create greenlet and then "run" it
+        self.spawning_greenlet = greenlet.getcurrent()
         self.greenlet = greenlet.greenlet(run=self.run, parent=control_greenlet)
         greenlet_list.append(self.greenlet)
 
+        # switch to control greenlet will be simulated as having occurred 
+        # before the spawned greenlet is begun (below) by having the spawned 
+        # greenlet's first action be to switch back to the control thread and
+        # make it look like the switch occurred from the spawning greenlet
+        # This is done so that when the controlling greenlet makes its decision
+        # the spawned greenlet has already been made active and is ready to
+        # run
+        
         # begin greenlet execution
         self.greenlet.switch()
 
     def run(self):
-        # switch to control greenlet so that scheduling can be forced
-        control_greenlet.switch(greenlet.getcurrent())
+        # switch to control greenlet so that scheduling can be forced (see note in __init__)
+        control_greenlet.switch(self.spawning_greenlet)
 
         # begin actual execution
         self.target(*self.args, **self.kwargs)
