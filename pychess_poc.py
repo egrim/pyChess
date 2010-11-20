@@ -31,7 +31,7 @@ def run_step(depth):
                 global shortest_fail
                 if not shortest_fail or len(execution_path) < len(shortest_fail):
                     shortest_fail = execution_path[:] # make a copy... we want to hold on to this
-                print "%s: test failure (%s) with" % (execution_path, e)
+                print "%s: test failure (%s)" % (execution_path, e)
 
             execution_path.pop()
             controlled_threading.start_greenlet_from_file(sys.argv[1], execution_path)
