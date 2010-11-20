@@ -4,48 +4,51 @@ import threading as original_threading
 
 import greenlet
 
+# TODO: remove this when no longer debugging
 def NOP():
     pass
 
 greenlet_list = []
 control_greenlet = greenlet.getcurrent()
-    
+
 def get_greenlet_list():
     return greenlet_list
+
 
 def are_greenlets_alive():
     live_greenlets = [greenlet for greenlet in greenlet_list if not greenlet.dead]
     return len(live_greenlets) != 0
 
-def clear_greenlets():
+
+def start_greenlet_from_file(filename, execution_path_to_run=None):
+    cancel_all_greenlets()
+
+    def run_as_main(filename):
+        # modify globals so it looks like filename is being run as main
+        g = globals()
+        g['__name__'] = '__main__'
+
+        # execute file with modified globals dictionary
+        execfile(filename, g)
+
+    new_greenlet = greenlet.greenlet(run_as_main)
+    greenlet_list.append(new_greenlet)
+    new_greenlet.switch(filename)
+
+    if execution_path_to_run:
+        for step in execution_path_to_run:
+            greenlet_list[step].switch()
+
+
+def cancel_all_greenlets():
     for greenlet in greenlet_list[:]: # use copy since this loop will modify the contents
         if greenlet:
             try:
                 greenlet.throw(KeyboardInterrupt)
             except KeyboardInterrupt:
                 pass
-            
-        greenlet_list.remove(greenlet) 
-    
-def restart_and_replay(filename, execution_path):
-    start_main_greenlet_from_file(filename)
-    for step in execution_path:
-        greenlet_list[step].switch()
-    
-def run(filename):
-    # modify globals so it looks like filename is being run as main
-    g = globals()
-    g['__name__'] = '__main__'
-    
-    # execute file with modified globals dictionary
-    execfile(filename, g)
 
-def start_main_greenlet_from_file(filename):
-    clear_greenlets()
-        
-    main_greenlet = greenlet.greenlet(run)
-    greenlet_list.append(main_greenlet)
-    main_greenlet.switch(filename)
+        greenlet_list.remove(greenlet)
 
 
 class Thread(object):

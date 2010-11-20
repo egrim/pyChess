@@ -6,18 +6,17 @@ import controlled_threading
 #    your troubles go away (haven't investigated why this works, but it does)
 sys.modules['threading'] = controlled_threading
 
-filename = 'bank_transaction.py'
 execution_path = []
 greenlet_list = controlled_threading.get_greenlet_list()
 shortest_fail = None
 
 
-def run_step(max_depth):
+def run_step(depth):
     if not controlled_threading.are_greenlets_alive():
         print "%s: all greenlets completed" % execution_path
         return
-    
-    if max_depth is 0:
+
+    if depth is 0:
         print "%s: depth bound reached, proceeding with next path" % execution_path
         return
 
@@ -27,7 +26,7 @@ def run_step(max_depth):
             execution_path.append(stepIndex)
             try:
                 greenlet.switch()
-                run_step(max_depth-1)
+                run_step(depth - 1)
             except AssertionError, e:
                 global shortest_fail
                 if not shortest_fail or len(execution_path) < len(shortest_fail):
@@ -35,14 +34,17 @@ def run_step(max_depth):
                 print "%s: test failure (%s) with" % (execution_path, e)
 
             execution_path.pop()
-            controlled_threading.restart_and_replay(filename, execution_path)
-        
+            controlled_threading.start_greenlet_from_file(sys.argv[1], execution_path)
+
         else:
             print "%s: skipping (greenlet %s already dead)" % (execution_path + [stepIndex, ], stepIndex)
 
 
 def main():
-    controlled_threading.start_main_greenlet_from_file(filename)
+    if len(sys.argv) < 2:
+        print 'missing argument specifying file to be tested'
+
+    controlled_threading.start_greenlet_from_file(sys.argv[1])
     run_step(10)
 
     if shortest_fail:
