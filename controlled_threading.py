@@ -55,7 +55,7 @@ class Thread(object):
         self.name = name
         self.args = args
         self.kwargs = kwargs
-        
+
     def start(self):
         # create greenlet and then "run" it
         self.greenlet = greenlet.greenlet(run=self.run, parent=control_greenlet)
@@ -63,45 +63,44 @@ class Thread(object):
 
         # begin greenlet execution
         self.greenlet.switch()
-        
+
     def run(self):
         # switch to control greenlet so that scheduling can be forced
         control_greenlet.switch(greenlet.getcurrent())
-        
+
         # begin actual execution
         self.target(*self.args, **self.kwargs)
-        
+
     def join(self):
         while self.isAlive():
             control_greenlet.switch(greenlet.getcurrent())
             NOP()
-        
+
     def isAlive(self):
         return not self.greenlet.dead
-        
-        
+
+
 class Lock(object):
     def __init__(self):
         self.lock = original_threading.Lock()
-        
+
     def __enter__(self):
         self.acquire()
-        
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.release()
         return False
-    
+
     def acquire(self, blocking=1):
         control_greenlet.switch(greenlet.getcurrent())
         NOP()
 
         return self.lock.acquire(blocking)
-    
+
     def release(self):
-        return self.lock.release()        
-    
+        return self.lock.release()
+
 # Python apparently expects the 'threading' module to have a _shutdown method
 #  without this you'll always get an error on exit
 def _shutdown():
     pass
-    

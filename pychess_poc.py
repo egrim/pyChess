@@ -20,7 +20,7 @@ def run_step(max_depth):
     if max_depth is 0:
         print "%s: depth bound reached, proceeding with next path" % execution_path
         return
-    
+
     for stepIndex in xrange(len(greenlet_list)): # use indices since greenlet_list will change each iteration
         greenlet = greenlet_list[stepIndex]
         if greenlet:
@@ -33,21 +33,21 @@ def run_step(max_depth):
                 if not shortest_fail or len(execution_path) < len(shortest_fail):
                     shortest_fail = execution_path[:] # make a copy... we want to hold on to this
                 print "%s: test failure (%s) with" % (execution_path, e)
-                    
+
             execution_path.pop()
             controlled_threading.restart_and_replay(filename, execution_path)
         
         else:
-            print "%s: skipping (greenlet %s already dead)" % (execution_path + [stepIndex,], stepIndex)
-            
-                        
+            print "%s: skipping (greenlet %s already dead)" % (execution_path + [stepIndex, ], stepIndex)
+
+
 def main():
     controlled_threading.start_main_greenlet_from_file(filename)
     run_step(10)
-    
+
     if shortest_fail:
         print "Shortest failure path: %s" % shortest_fail
-    
+
 #        for step in execution_path[:-1]:
 #            greenlet_list.switch()
 #            
@@ -68,9 +68,9 @@ def main():
 #            else:
 #                execution_path.pop()
 #                break
-            
+
     print 'done'
-    
+
 
 if __name__ == '__main__':
     main()

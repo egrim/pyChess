@@ -12,10 +12,10 @@ class BankAccount(object):
         self.lock = threading.Lock()
 
         self._balance = initial_balance
-        
+
     def get_balance(self):
         return self._balance
-    
+
     def set_balance(self, balance):
         self._balance = balance
 
@@ -25,24 +25,24 @@ def withdraw(amount, account):
         balance = account.get_balance()
         new_balance = balance - amount
         account.set_balance(new_balance)
-    
+
 def deposit(amount, account):
     balance = account.get_balance()
     with account.lock:
         new_balance = balance + amount
         account.set_balance(new_balance)
-            
+
 if __name__ == '__main__':
     account = BankAccount(BALANCE_START)
-    withdraw_thread = threading.Thread(target=withdraw, 
+    withdraw_thread = threading.Thread(target=withdraw,
                                        args=(AMOUNT_WITHDRAW, account))
-    
+
     deposit_thread = threading.Thread(target=deposit,
                                       args=(AMOUNT_DEPOSIT, account))
-    
+
     withdraw_thread.start()
     deposit_thread.start()
-    
+
     withdraw_thread.join()
     deposit_thread.join()
 
