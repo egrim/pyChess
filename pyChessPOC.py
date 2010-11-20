@@ -21,7 +21,7 @@ def run_step(max_depth):
         print "%s: depth bound reached, proceeding with next path" % execution_path
         return
     
-    for stepIndex in xrange(len(greenlet_list)): # use indices since the greenlet list will change each time we restart
+    for stepIndex in xrange(len(greenlet_list)): # use indices since greenlet_list will change each iteration
         greenlet = greenlet_list[stepIndex]
         if greenlet:
             execution_path.append(stepIndex)
