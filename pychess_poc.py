@@ -42,7 +42,7 @@ def run_step(depth):
 
 def main():
     if len(sys.argv) < 2:
-        print 'missing argument specifying file to be tested'
+        sys.exit("missing argument specifying file to be tested")
 
     controlled_threading.start_greenlet_from_file(sys.argv[1])
     run_step(10)
