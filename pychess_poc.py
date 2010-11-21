@@ -6,58 +6,106 @@ import controlled_threading
 #    your troubles go away (haven't investigated why this works, but it does)
 sys.modules['threading'] = controlled_threading
 
-execution_path = []
 greenlet_list = controlled_threading.get_greenlet_list()
-shortest_fail = None
 
 
-def run_interleavings(switches, depth, last_greenlet_run):
+class RunStorage(object):
+    def __init__(self):
+        self.fail_paths = []
+        self.complete_paths = []
+        self.depth_limited_paths = []
+        self.context_limited_paths = []
+        
+        self.execution_history = []
+        
+        self.last_greenlet_run = None
+        self.file_being_run = None
+    
+
+def run_interleavings(max_switches, max_depth, storage):
     if not controlled_threading.are_greenlets_alive():
-        print "%s: finished (all greenlets completed)" % execution_path
-        return
-
-    if depth is 0:
-        print "%s: aborting (depth bound reached)" % execution_path
-        return
+        storage.last_greenlet_run = \
+            controlled_threading.start_greenlet_from_file(storage.file_being_run,
+                                                          storage.execution_history)
 
     for stepIndex in xrange(len(greenlet_list)): # use indices since greenlet_list will change each iteration
-        greenlet = greenlet_list[stepIndex]
-        if not greenlet:
-            print "%s: skipping (greenlet %s already completed)" % (execution_path + [stepIndex, ], stepIndex)
-            continue
+        if not controlled_threading.are_greenlets_alive():
+            storage.last_greenlet_run = \
+                controlled_threading.start_greenlet_from_file(storage.file_being_run,
+                                                              storage.execution_history)
+        
+        storage.execution_history.append(stepIndex)
 
-        execution_path.append(stepIndex)
         try:
-            if greenlet != last_greenlet_run:
-                if switches is 0:
-                    print "%s: skipping (context bound reached)" % execution_path
+            if storage.execution_history in storage.complete_paths + storage.depth_limited_paths + storage.fail_paths:
+                print "%s: skipping (path already run)" % (storage.execution_history)
+                continue
+
+            greenlet = greenlet_list[stepIndex]
+            
+            if not greenlet:
+                print "%s: skipping (greenlet %s already completed)" % (storage.execution_history, stepIndex)
+                continue
+
+            if greenlet != storage.last_greenlet_run:
+                if max_switches is 0:
+                    storage.context_limited_paths.append(storage.execution_history[:])
+                    print "%s: skipping (exceeds context bound)" % storage.execution_history
                     continue
-                switches_left = switches - 1
+                switches_left = max_switches - 1
             else:
-                switches_left = switches
+                switches_left = max_switches
 
             try:            
-                last_greenlet_run = greenlet.switch()
-                run_interleavings(switches_left, depth - 1, last_greenlet_run)
+                storage.last_greenlet_run = greenlet.switch()
             except AssertionError, e:
-                global shortest_fail
-                if not shortest_fail or len(execution_path) < len(shortest_fail):
-                    shortest_fail = execution_path[:] # make a copy... we want to hold on to this
-                print "%s: test failure (%s)" % (execution_path, e)
-        finally:
-            execution_path.pop()
+                storage.fail_paths.append(storage.execution_history[:])
+                print "%s: test failure (%s)" % (storage.execution_history, e)
+                continue
+            else:
+                if not controlled_threading.are_greenlets_alive():
+                    storage.complete_paths.append(storage.execution_history[:])
+                    print "%s: finished (all greenlets completed)" % storage.execution_history
+                    continue
+                
+                if max_depth <= 1:
+                    storage.depth_limited_paths.append(storage.execution_history[:])
+                    print "%s: aborting (depth limit reached)" % storage.execution_history
+                    continue
+                
+                run_interleavings(switches_left, max_depth - 1, storage)
 
-        controlled_threading.start_greenlet_from_file(sys.argv[1], execution_path)
+            finally:
+                controlled_threading.cancel_all_greenlets()
+
+
+        finally:
+            storage.execution_history.pop()
 
 
 def main():
     if len(sys.argv) < 2:
         sys.exit("missing argument specifying file to be tested")
 
-    last_greenlet_run = controlled_threading.start_greenlet_from_file(sys.argv[1])
-    run_interleavings(5, 10, last_greenlet_run)
+    run_storage = RunStorage()
+    run_storage.file_being_run = sys.argv[1]
+    
+    try:
+        for i in xrange(100):
+            print "Running with context switch bound of %i" % i
+            run_interleavings(i, 10, run_storage)
+            if run_storage.fail_paths:
+                break
+            print
+    except KeyboardInterrupt:
+        print "Run interrupted by user"
 
-    if shortest_fail:
+    if run_storage.fail_paths:
+        shortest_fail = run_storage.fail_paths[0]
+        for fail_path in run_storage.fail_paths:
+            if len(fail_path) < len(shortest_fail):
+                shortest_fail = fail_path
+                
         print "Shortest failure path: %s" % shortest_fail
 
 #        for step in execution_path[:-1]:
