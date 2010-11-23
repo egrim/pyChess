@@ -18,8 +18,9 @@ class RunStorage(object):
         
         self.execution_history = []
         
-        self.last_greenlet_run = None
         self.file_being_run = None
+        self.last_greenlet_run = None
+        self.new_path_run = False
     
 
 def run_interleavings(max_switches, max_depth, storage):
@@ -60,16 +61,19 @@ def run_interleavings(max_switches, max_depth, storage):
                 storage.last_greenlet_run = greenlet.switch()
             except AssertionError, e:
                 storage.fail_paths.append(storage.execution_history[:])
+                storage.new_path_run = True
                 print "%s: test failure (%s)" % (storage.execution_history, e)
                 continue
             else:
                 if not controlled_threading.are_greenlets_alive():
                     storage.complete_paths.append(storage.execution_history[:])
+                    storage.new_path_run = True
                     print "%s: finished (all greenlets completed)" % storage.execution_history
                     continue
                 
                 if max_depth <= 1:
                     storage.depth_limited_paths.append(storage.execution_history[:])
+                    storage.new_path_run = True
                     print "%s: aborting (depth limit reached)" % storage.execution_history
                     continue
                 
@@ -92,10 +96,16 @@ def main():
     
     try:
         for i in xrange(100):
+            run_storage.new_path_run = False
             print "Running with context switch bound of %i" % i
             run_interleavings(i, 10, run_storage)
             if run_storage.fail_paths:
                 break
+            
+            if run_storage.new_path_run is False:
+                print "No new interleavings run with this context switch bound, search complete"
+                break
+            
             print
     except KeyboardInterrupt:
         print "Run interrupted by user"
