@@ -1,6 +1,6 @@
 pyChess is an implementation of Microsoft's CHESS model checker for concurrent programming using the python language. pyChess requires the greenlet module available from pypi.
 
-CHESS is, presumably, a trademark of Microsoft's so consider this a working title until we can think of something better (or the unlikely happenstance that we get their blessing)
+CHESS is, presumably, a trademark of Microsoft's so consider this a working title until we can think of something better (or the unlikely happenstance that we get their blessing).
 
 Developed as an academic exercise by:
     Evan Grim
