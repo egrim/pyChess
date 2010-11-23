@@ -4,10 +4,6 @@ import threading as original_threading
 
 import greenlet
 
-# TODO: remove this when no longer debugging
-def NOP():
-    pass
-
 greenlet_list = []
 control_greenlet = greenlet.getcurrent()
 
@@ -93,7 +89,6 @@ class Thread(object):
     def join(self):
         while self.isAlive():
             control_greenlet.switch(greenlet.getcurrent())
-            NOP()
 
     def isAlive(self):
         return not self.greenlet.dead
@@ -112,8 +107,6 @@ class Lock(object):
 
     def acquire(self, blocking=1):
         control_greenlet.switch(greenlet.getcurrent())
-        NOP()
-
         return self.lock.acquire(blocking)
 
     def release(self):
