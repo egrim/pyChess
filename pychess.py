@@ -1,5 +1,12 @@
 import sys
+import optparse
+
 import controlled_threading
+
+VERSION_STRING = "v0.1 (prerelease)"
+
+DEFAULT_DEPTH_LIMIT = 10
+
 
 # install controlled_threading in sys.modules so future imports get this module 
 #    Note to pydev users: add a breakpoint on the following line to make all 
@@ -88,18 +95,27 @@ def run_interleavings(max_switches, max_depth, storage):
 
 
 def main():
-    if len(sys.argv) < 2:
-        sys.exit("missing argument specifying file to be tested")
+    parser = optparse.OptionParser(usage="%prog [options] PROGRAM_TO_TEST", version="%prog " + VERSION_STRING)
+    parser.add_option("-c", "--startContextDepth", dest="startContextDepth", type="int", default=0, help="specify a context depth at which to start iterative context bounding (defaults to %default)")
+    parser.add_option("-m", "--maxContextDepth", dest="maxContextDepth", type="int", default=sys.maxint, help="specify a maximum context depth for iterative context bounding")
+    parser.add_option("-d", "--depth", dest="depth", type="int", default=DEFAULT_DEPTH_LIMIT, help="specify the maximum run depth (defaults to %default)")
+    parser.add_option("-q", "--store_true", dest="verbose", default=False, help="don't print status message to stdout (not yet implemented)")
+    
+    (options, arguments) = parser.parse_args()
+    
+    if not arguments:
+        parser.error("missing argument specifying file to be tested")
 
     run_storage = RunStorage()
-    run_storage.file_being_run = sys.argv[1]
+    run_storage.file_being_run = arguments[0]
     
     try:
-        for i in xrange(100):
+        for i in xrange(options.startContextDepth, min(sys.maxint, options.maxContextDepth+1)):
             run_storage.new_path_run = False
             print "Running with context switch bound of %i" % i
-            run_interleavings(i, 10, run_storage)
+            run_interleavings(i, options.depth, run_storage)
             if run_storage.fail_paths:
+                print "Test failure detected with this context switch bound, discontinuing search"
                 break
             
             if run_storage.new_path_run is False:
@@ -108,7 +124,7 @@ def main():
             
             print
     except KeyboardInterrupt:
-        print "Run interrupted by user"
+        print "Run interrupted by user, discontinuing search"
 
     if run_storage.fail_paths:
         shortest_fail = run_storage.fail_paths[0]
