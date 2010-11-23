@@ -33,12 +33,12 @@ def deposit(amount, account):
         account.set_balance(new_balance)
 
 if __name__ == '__main__':
-    account = BankAccount(BALANCE_START)
+    account = BankAccount(1000)
     withdraw_thread = threading.Thread(target=withdraw,
-                                       args=(AMOUNT_WITHDRAW, account))
+                                       args=(500, account))
 
     deposit_thread = threading.Thread(target=deposit,
-                                      args=(AMOUNT_DEPOSIT, account))
+                                      args=(500, account))
 
     withdraw_thread.start()
     deposit_thread.start()
@@ -47,9 +47,5 @@ if __name__ == '__main__':
     deposit_thread.join()
 
     final_balance = account.get_balance()
-    assert final_balance == BALANCE_EXPECTED, "balance mismatch; Expected: %i Found: %i" % (BALANCE_EXPECTED, final_balance)
+    assert final_balance == 1000, "balance mismatch; Expected: %i Found: %i" % (1000, final_balance)
     print "Success!",
-#    if final_balance != BALANCE_EXPECTED:
-#        print "Error - balance mismatch; Expected: %i Found: %i" % (BALANCE_EXPECTED, final_balance)
-#    else:
-#        print "Success!"
