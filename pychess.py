@@ -107,29 +107,9 @@ def main():
                 shortest_fail = fail_path
                 
         print "Shortest failure path: %s" % shortest_fail
-
-#        for step in execution_path[:-1]:
-#            greenlet_list.switch()
-#            
-#        
-#            
-#        try:
-#            next_greenlet
-#        if execution_path:
-#                next_index = execution_path[-1] + 1
-#            else:
-#                next_index = 0
-#                
-#            live_greenlets = [greenlet for greenlet in greenlet_list[next_index:] if greenlet]
-#            if live_greenlets:
-#                next_switch = live_greenlets[0]
-#                execution_path.append(next_index)
-#                next_switch.switch()
-#            else:
-#                execution_path.pop()
-#                break
-
-    print 'done'
+        
+    else:
+        print "No test failures detected"
 
 
 if __name__ == '__main__':
