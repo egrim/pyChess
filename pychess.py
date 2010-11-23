@@ -99,7 +99,7 @@ def main():
     parser.add_option("-c", "--startContextDepth", dest="startContextDepth", type="int", default=0, help="specify a context depth at which to start iterative context bounding (defaults to %default)")
     parser.add_option("-m", "--maxContextDepth", dest="maxContextDepth", type="int", default=sys.maxint, help="specify a maximum context depth for iterative context bounding")
     parser.add_option("-d", "--depth", dest="depth", type="int", default=DEFAULT_DEPTH_LIMIT, help="specify the maximum run depth (defaults to %default)")
-    parser.add_option("-q", "--store_true", dest="verbose", default=False, help="don't print status message to stdout (not yet implemented)")
+    parser.add_option("-q", "--quiet", action="store_false", dest="verbose", default=True, help="don't print status message to stdout (not yet implemented)")
     
     (options, arguments) = parser.parse_args()
     
