@@ -27,8 +27,8 @@ def withdraw(amount, account):
         account.set_balance(new_balance)
 
 def deposit(amount, account):
+    balance = account.get_balance()
     with account.lock:
-        balance = account.get_balance()
         new_balance = balance + amount
         account.set_balance(new_balance)
 
